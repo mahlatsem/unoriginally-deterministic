@@ -18,5 +18,5 @@
       ]
     }
   },
-  "postCreateCommand": "npx --yes bmad-method install --yes --directory \"$PWD\" --modules bmm --tools claude-code"
+  "postCreateCommand": "[ -d _bmad/_config ] || npx --yes bmad-method install --yes --directory \"$PWD\" --modules bmm --tools claude-code"
 }
