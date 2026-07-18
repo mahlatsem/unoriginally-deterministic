@@ -49,6 +49,10 @@ is an accessibility-first re-imagining of those ideas for the ecosystem develope
 work in — and would happily fold if a better-funded, more accessible version arrived. The
 point is for the idea to cross the chasm.
 
+## License
+
+[MIT](LICENSE) — permissive, the same license as Glamorous Toolkit. Use it, build on it, fork it.
+
 [gt]: https://gtoolkit.com/
 [gtbook]: https://book.gtoolkit.com/
 [rewild]: https://medium.com/feenk/rewilding-software-engineering-ca3ad1e612d8
