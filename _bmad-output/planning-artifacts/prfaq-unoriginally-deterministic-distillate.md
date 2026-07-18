@@ -22,10 +22,10 @@ Dense context for PRD creation. Each bullet stands alone.
 - **Beachhead (v1):** existing-code **structure comprehension**. Roadmap on same engine: change/diff-for-review; design-level EventStorming-from-code; **drift detection** (design-as-implemented vs design-as-intended).
 
 ## Architecture & technical decisions (LOCKED)
-- **Toolkit bundles NO AI.** Deterministic code end-to-end: runtime + starter tools + a moldable framework *designed to be extended by whatever AI assistant the engineer already uses* (Claude/Copilot/Cursor). Product's job = make AI-authored analysis tools deterministic, durable, shareable — not to be the AI.
+- **Toolkit bundles NO AI.** Deterministic code end-to-end: runtime + starter tools + a moldable framework *designed to be extended by whatever AI assistant the engineer already uses* (Claude/Copilot/Cursor) — or by hand. Product's job = make analysis tools (AI-authored or hand-written) deterministic, durable, shareable — not to be the AI. AI just makes writing a tool faster; it's never the only way to write one.
 - **Parsing:** simple OSS deps only, **tree-sitter-first** (WASM, in-process, no JVM). tree-sitter's ERROR nodes make "fail loud / honest holes / never fabricate" the DEFAULT. COBOL = base tree-sitter grammar + community extensions. Commercial/heavy dialect parsing = **user-supplied plug-in via extension point**, never bundled. (ProLeap/SonarQube exist as evidence robust enterprise-COBOL parsing is available if a user must BYO; JVM-backend-in-core was REJECTED as violating the lean/on-machine promise.)
 - **Trust = STRUCTURAL, not convention:** provenance (source span) is a **REQUIRED argument of the drawing primitives** — no source → no node/edge. A lazy AI-generated tool can't silently break trace-to-source; it produces nothing. THE make-or-break design surface.
-- **Reliability mechanism:** AI **composes over vetted deterministic primitives** (tree-sitter queries + toolkit building blocks); it does NOT author analysis from first principles. Reliability scales with how well the toolkit narrows the AI's job.
+- **Reliability mechanism:** AI **composes over vetted deterministic primitives** (tree-sitter queries + toolkit building blocks); it does NOT author analysis from first principles. Reliability scales with how well the toolkit narrows this job — for AI *and* for a human writing the tool by hand. AI use is recommended, especially for speed, but the extension contract must be easy to build against either way.
 - **Two orthogonal trust checks:** audit the (short) analyzer; OR trace every drawn element back to its exact source line.
 - **Visualization:** v1 = a few hardcoded view types + rendering primitives. "Tool builds the tool" (AI composes novel views over primitives) = DIRECTION, not v1. Explicitly NOT rebuilding GT's decade of polish.
 - **Ownership/sustainability:** molded tools are plain TypeScript **versioned in the user's own repo**, run without the project → anti-SaaS-rug-pull; low exposure if project stalls.
@@ -53,7 +53,7 @@ Dense context for PRD creation. Each bullet stands alone.
 - **Does NOT catch semantic/local bugs** (rounding, date edge cases). Aims human reading at the right place; correctness stays human. Accepted, not a gap — claiming otherwise = the coherence-engine lie.
 
 ## Open questions / unknowns (flagged, with how to resolve)
-- **#1 (must de-risk first): molding reliability is unproven.** RESOLVE VIA: thin vertical slice — tree-sitter extraction + provenance-enforcing primitives + one view — then have **3 different AI assistants each generate a custom tool; measure how many plug in and pass trust checks UNEDITED.** Go/no-go experiment before any broad build.
+- **#1 (must de-risk first): molding reliability is unproven.** RESOLVE VIA: thin vertical slice — tree-sitter extraction + provenance-enforcing primitives + one view — then have **Claude Code (the builder's own assistant) generate a custom tool across several independent tasks; measure how many plug in and pass trust checks UNEDITED.** Go/no-go experiment before any broad build. Cross-assistant portability is not a v1 goal — toolkit is assistant-agnostic by design; other users may validate other assistants themselves.
 - **Extension contract not yet designed** (the mechanism is known: constrained primitives + required provenance; the design is open). Largest + most important open engineering problem.
 - **Visualization/rendering primitives + v1 view set** undefined. Largest undesigned surface.
 - **Activation/retention:** no defined "aha" that converts a first-try into a returning second-mold.
@@ -62,7 +62,7 @@ Dense context for PRD creation. Each bullet stands alone.
 
 ## Posture / strategy (consistent across FAQ)
 - **Mission over ownership.** Happy to fold if a better-funded accessible version (GT ships VS Code/TS/AI on-ramp) or reliably-grounded agentic AI supersedes it. Success = the IDEA crossing the chasm, not market capture. Not a moat — a head start.
-- **No-hurry, long-horizon, solo (nights/weekends).** AI writing the tool's own code is what makes solo feasible.
+- **No-hurry, long-horizon, solo (nights/weekends).** AI writing the tool's own code is what makes solo feasible at pace — hand-writing a tool is always an option, AI just accelerates it.
 - **Adoption = proof-by-dogfooding** (real COBOL/Java modernization) **+ outcome-sharing** (LinkedIn, moldable-dev communities). Deliberately organic, no growth engine. No one asked to switch — showcase outcomes, let enterprises self-select.
 - **Sustainability:** small/reviewable tools → cheap PR review; optional paid support if adoption warrants; bus factor mitigated by user-owned tools running without the project.
 - **Kill-signal to watch (Q8):** a mainstream AI assistant producing the SAME structural answer twice with verifiable source (reproducible + grounded, not merely plausible) → the deterministic-tool wedge is closing → compresses the build window → favors a fast thin prototype.
@@ -73,4 +73,4 @@ Dense context for PRD creation. Each bullet stands alone.
 - Press release contains a placeholder repository link and a "small, sharp starter set" (deliberately vague on exact count — keep honest, don't imply a mature library on day one).
 
 ## Verdict summary
-- **Forged — with one crack to prototype first.** Sharp thinking, honest positioning, realistic solo scope. Strongest assets: the coherence-vs-truth reframe, structural provenance-enforced trust, and the evidenced accessibility wedge. Build the **reliability prototype** before any broad build: if 3 AI assistants can each produce a working, provenance-carrying tool against the contract unedited → you have a product; if not → it's GT's adoption problem in a new editor.
+- **Forged — with one crack to prototype first.** Sharp thinking, honest positioning, realistic solo scope. Strongest assets: the coherence-vs-truth reframe, structural provenance-enforced trust, and the evidenced accessibility wedge. Build the **reliability prototype** before any broad build: if Claude Code can reliably produce a working, provenance-carrying tool against the contract unedited → you have a product; if not → it's GT's adoption problem in a new editor.
