@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>key-unit-flowchart — unoriginally-deterministic</title>
+<style>
+/* ============================================================================
+   KEY SCREEN: Unit-grain Flowchart + native editor split (Code perspective
+   geometry). Left: flowchart of 3000-TAX-DISPATCH, one block selected.
+   Right: VS Code's REAL editor (not a webview re-render) scrolled to the
+   paragraph, selection-synced. 1:1 mock in a minimal VS Code window frame.
+
+   Governing spine sections:
+   EXPERIENCE.md
+     - Views & Perspectives: "Flowchart" (unit grain) · "Code" (native editor
+       split, selection synced both ways) · grain table row "Unit"
+     - Information Architecture: "View canvas", "Native editor"
+     - Component Patterns rows: Node (flow blocks reuse node tokens) · Edge
+       (GO TO distinguished) · Provenance tick · View header · Perspective
+       switcher · Breadcrumb
+     - State Patterns rows: "Trace target" (element/line pair visibly linked)
+     - Key Flows: Flow 2 steps 4-5 (drill to unit flowchart, GO TO edge out of
+       the error branch, F12 native editor split beside the canvas)
+   DESIGN.md
+     - Components: node, node-selected, edge, provenance-tick, perspective-tab,
+       breadcrumb; "Sequence & flowchart marks" (one visual vocabulary)
+     - Colors (trace-active for the synced pair; cat-5 + label for GO TO,
+       color never the only cue), Shapes (2-3px), Layout & Spacing (dense,
+       the only split is the native editor)
+   ============================================================================ */
+
+:root {
+  /* --------------------------------------------------------------------------
+     STAND-IN THEME RESOLUTIONS. DESIGN.md tokens are var(--vscode-*) references
+     that VS Code injects from the user's ACTIVE theme at render time. For this
+     offline mock they are resolved to concrete VS Code Dark+ (default dark)
+     values — dark chosen as representative. In the product, none of these hexes
+     ship; the extension inherits whatever theme the user runs.
+     -------------------------------------------------------------------------- */
+  --vscode-editor-background: #1e1e1e;
+  --vscode-editor-foreground: #d4d4d4;
+  --vscode-descriptionForeground: rgba(204, 204, 204, 0.7);
+  --vscode-panel-border: rgba(128, 128, 128, 0.35);
+  --vscode-editorWidget-background: #252526;
+  --vscode-widget-border: #454545;
+  --vscode-editor-selectionBackground: #264f78;
+  --vscode-focusBorder: #007fd4;
+  --vscode-textLink-foreground: #3794ff;
+  --vscode-charts-green: #89d185;        /* provenance */
+  --vscode-editorLink-activeForeground: #4e94ce; /* trace-active */
+  --vscode-editorWarning-foreground: #cca700;    /* unparsed (unused here: 0 regions) */
+  --vscode-charts-red: #f14c4c;          /* cat-5: the GO TO edge */
+  --vscode-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, "Helvetica Neue", sans-serif;
+  --vscode-editor-font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --vscode-font-size: 13px;
+  --vscode-editor-font-size: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #161616;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-editor-foreground);
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+/* ---- VS Code window frame (minimal) */
+.vscode-window {
+  width: 1180px;
+  border: 1px solid #444;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--vscode-editor-background);
+}
+.titlebar {
+  height: 28px;
+  background: #3c3c3c;
+  display: flex; align-items: center; position: relative;
+  font-size: 12px; color: #cccccc;
+}
+.titlebar .dots { display: flex; gap: 7px; padding: 0 12px; }
+.titlebar .dots span { width: 11px; height: 11px; border-radius: 9999px; background: #5a5a5a; }
+.titlebar .title { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; }
+.window-body { display: flex; }
+.activitybar {
+  width: 48px; background: #333333;
+  display: flex; flex-direction: column; align-items: center; padding-top: 4px;
+}
+.activitybar .icon { width: 48px; height: 44px; display: flex; align-items: center; justify-content: center; }
+.activitybar .icon svg { stroke: #858585; fill: none; stroke-width: 1.3; }
+.activitybar .icon.active { border-left: 2px solid #ffffff; }
+.activitybar .icon.active svg { stroke: #ffffff; }
+
+/* ---- Editor group split: canvas webview left, native editor right */
+.split { flex: 1; display: flex; min-width: 0; }
+.group { display: flex; flex-direction: column; min-width: 0; }
+.group.canvas-group { width: 620px; border-right: 1px solid var(--vscode-panel-border); }
+.group.editor-group { flex: 1; }
+
+.tabstrip {
+  height: 32px; background: #252526;
+  display: flex; align-items: stretch; font-size: 12px;
+}
+.tab {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 12px; border-right: 1px solid #1e1e1e;
+  color: #969696; background: #2d2d2d;
+  font-family: var(--vscode-editor-font-family);
+}
+.tab.active { background: var(--vscode-editor-background); color: #e7e7e7; }
+.tab .close { color: #7a7a7a; font-family: var(--vscode-font-family); }
+
+.statusbar {
+  height: 22px; background: #007acc; color: #ffffff; font-size: 11px;
+  display: flex; align-items: center; justify-content: space-between; padding: 0 10px;
+}
+.statusbar .seg { display: flex; gap: 14px; }
+
+/* ---- View header (canvas group) */
+.view-header {
+  padding: 6px 10px 0 10px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+.header-row { display: flex; align-items: center; gap: 12px; min-height: 26px; flex-wrap: nowrap; }
+.wordmark {
+  font-family: var(--vscode-editor-font-family);
+  font-weight: 400; font-size: 12px; letter-spacing: 0;
+  color: var(--vscode-editor-foreground); white-space: nowrap;
+}
+.perspective-tabs { display: flex; gap: 2px; align-self: stretch; }
+.perspective-tab {
+  padding: 4px 10px 5px 10px;
+  color: var(--vscode-descriptionForeground);
+  border-bottom: 1px solid transparent;
+  font-size: 12px; white-space: nowrap;
+}
+.perspective-tab.active { color: var(--vscode-editor-foreground); border-bottom-color: var(--vscode-focusBorder); }
+.header-spacer { flex: 1; }
+.legend { display: flex; gap: 12px; align-items: center; font-size: 11px; color: var(--vscode-descriptionForeground); white-space: nowrap; }
+.legend .swatch { display: inline-block; width: 20px; vertical-align: middle; margin-right: 5px; }
+.legend .swatch.flow { border-top: 2px solid rgba(204, 204, 204, 0.5); }
+.legend .swatch.goto { border-top: 2px dashed var(--vscode-charts-red); }
+.rail-toggle {
+  border: 1px solid var(--vscode-widget-border); border-radius: 2px;
+  color: var(--vscode-descriptionForeground); font-size: 11px; padding: 2px 8px; white-space: nowrap;
+}
+.breadcrumb-row {
+  padding: 3px 0 2px 0;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px; color: var(--vscode-descriptionForeground); white-space: nowrap;
+}
+.breadcrumb-row .sep { font-family: var(--vscode-font-family); }
+.breadcrumb-row .current { color: var(--vscode-editor-foreground); }
+.continuity { padding: 2px 0 6px 0; font-size: 11px; color: var(--vscode-descriptionForeground); }
+
+/* ---- Flowchart canvas: blocks reuse node tokens; one visual vocabulary */
+.canvas { position: relative; height: 556px; overflow: hidden; }
+.edges { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.block {
+  position: absolute; height: 30px;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 9px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 2px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11px; color: var(--vscode-editor-foreground);
+  white-space: nowrap;
+}
+.block.entry, .block.exit { height: 26px; }
+/* selected block — lit as the canvas half of the synced element/line pair */
+.block.selected {
+  border-color: var(--vscode-focusBorder);
+  background: var(--vscode-editor-selectionBackground);
+}
+.tick {
+  position: absolute; top: -3px; right: -3px;
+  width: 6px; height: 6px; border-radius: 9999px;
+  background: var(--vscode-charts-green);
+}
+/* diamond labels sit over SVG-drawn diamond outlines */
+.dlabel {
+  position: absolute;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 11px; color: var(--vscode-editor-foreground);
+  white-space: nowrap; pointer-events: none;
+}
+.dtick {
+  position: absolute; width: 6px; height: 6px; border-radius: 9999px;
+  background: var(--vscode-charts-green);
+}
+.edge-label {
+  position: absolute; font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+}
+.edge-label.goto {
+  font-family: var(--vscode-editor-font-family);
+  color: var(--vscode-charts-red);
+}
+
+/* ---- Native editor pane (VS Code's own editor, selection-synced) */
+.editor-breadcrumbs {
+  height: 22px; display: flex; align-items: center;
+  padding: 0 12px; font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family);
+  border-bottom: 1px solid transparent;
+}
+.editor-breadcrumbs .sep { font-family: var(--vscode-font-family); margin: 0 5px; }
+.code {
+  flex: 1;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+  line-height: 19px;
+  padding-top: 4px;
+  overflow: hidden;
+}
+.line { display: flex; }
+.line .num {
+  width: 44px; flex: none; text-align: right; padding-right: 14px;
+  color: #858585;
+}
+.line pre { margin: 0; font-family: inherit; }
+/* the editor half of the synced pair: selection fill + trace-active bar */
+.line.synced { background: var(--vscode-editor-selectionBackground); }
+.line.synced .num {
+  border-left: 2px solid var(--vscode-editorLink-activeForeground);
+  padding-left: 0; color: #c6c6c6;
+}
+.line .num { border-left: 2px solid transparent; }
+/* Dark+ token colors (stand-ins, same caveat as :root) */
+.kw  { color: #569cd6; }
+.str { color: #ce9178; }
+.par { color: #dcdcaa; }
+.n   { color: #b5cea8; }
+</style>
+</head>
+<body>
+
+<div class="vscode-window">
+  <div class="titlebar">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <div class="title">payroll — Visual Studio Code</div>
+  </div>
+
+  <div class="window-body">
+    <div class="activitybar">
+      <div class="icon"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M6 3.5h7l3 3v12H6z"/><path d="M13 3.5v3h3"/></svg></div>
+      <div class="icon"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="10" cy="10" r="5"/><path d="M14 14l4.5 4.5"/></svg></div>
+      <div class="icon"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="7" cy="6" r="2.2"/><circle cx="7" cy="16" r="2.2"/><circle cx="15" cy="11" r="2.2"/><path d="M7 8.2v5.6M9 7l4 3"/></svg></div>
+      <div class="icon active"><svg width="22" height="22" viewBox="0 0 22 22"><rect x="4" y="4" width="6" height="6"/><rect x="12" y="4" width="6" height="6"/><rect x="4" y="12" width="6" height="6"/><path d="M15 12v6M12 15h6"/></svg></div>
+    </div>
+
+    <div class="split">
+      <!-- LEFT: view canvas, unit grain, Flowchart perspective -->
+      <div class="group canvas-group">
+        <div class="tabstrip">
+          <div class="tab active">unoriginally-deterministic — 3000-TAX-DISPATCH <span class="close">×</span></div>
+        </div>
+
+        <div class="view-header">
+          <div class="header-row">
+            <span class="wordmark">unoriginally-deterministic</span>
+            <div class="perspective-tabs">
+              <span class="perspective-tab active">Flowchart</span>
+              <span class="perspective-tab">Code</span>
+            </div>
+            <div class="header-spacer"></div>
+            <div class="legend">
+              <span><span class="swatch flow"></span>flow</span>
+              <span><span class="swatch goto"></span>GO TO</span>
+            </div>
+            <span class="rail-toggle">rail</span>
+          </div>
+          <div class="breadcrumb-row">payroll <span class="sep">›</span> PAYROLL.cbl <span class="sep">›</span> <span class="current">3000-TAX-DISPATCH</span></div>
+          <div class="continuity">Drawn from PAYROLL.cbl as it is now · lines 210–230 · 0 regions unparsed</div>
+        </div>
+
+        <div class="canvas">
+          <svg class="edges" viewBox="0 0 620 556" preserveAspectRatio="none">
+            <defs>
+              <marker id="a-flow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="rgba(204,204,204,0.5)"/></marker>
+              <marker id="a-goto" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#f14c4c"/></marker>
+            </defs>
+
+            <!-- decision diamonds (outline shapes; HTML overlays carry labels/ticks) -->
+            <polygon points="250,66 345,96 250,126 155,96" fill="#252526" stroke="#454545" stroke-width="1"/>
+            <polygon points="250,236 342,265 250,294 158,265" fill="#252526" stroke="#454545" stroke-width="1"/>
+            <polygon points="250,344 345,373 250,402 155,373" fill="#252526" stroke="#454545" stroke-width="1"/>
+
+            <!-- flow edges (muted) -->
+            <line x1="250" y1="36" x2="250" y2="63" stroke="rgba(204,204,204,0.5)" stroke-width="1.3" marker-end="url(#a-flow)"/>
+            <polyline points="155,96 124,96 124,165" fill="none" stroke="rgba(204,204,204,0.5)" stroke-width="1.3" marker-end="url(#a-flow)"/>
+            <polyline points="345,96 393,96 393,165" fill="none" stroke="rgba(204,204,204,0.5)" stroke-width="1.3" marker-end="url(#a-flow)"/>
+            <polyline points="124,198 124,222 250,222 250,233" fill="none" stroke="rgba(204,204,204,0.5)" stroke-width="1.3" marker-end="url(#a-flow)"/>
+            <polyline points="393,198 393,222 252,222" fill="none" stroke="rgba(204,204,204,0.5)" stroke-width="1.3"/>
+            <!-- loop: body edge + back edge -->
+            <line x1="342" y1="265" x2="389" y2="265" stroke="rgba(204,204,204,0.5)" stroke-width="1.3" marker-end="url(#a-flow)"/>
+            <path d="M 487 280 L 487 318 L 316 318 L 285 297" fill="none" stroke="rgba(204,204,204,0.5)" stroke-width="1.3" marker-end="url(#a-flow)"/>
+            <line x1="250" y1="294" x2="250" y2="341" stroke="rgba(204,204,204,0.5)" stroke-width="1.3" marker-end="url(#a-flow)"/>
+            <line x1="250" y1="402" x2="250" y2="437" stroke="rgba(204,204,204,0.5)" stroke-width="1.3" marker-end="url(#a-flow)"/>
+            <line x1="250" y1="470" x2="250" y2="505" stroke="rgba(204,204,204,0.5)" stroke-width="1.3" marker-end="url(#a-flow)"/>
+            <!-- the GO TO edge: cat-5 + dashed + literal label = never color alone -->
+            <line x1="345" y1="373" x2="397" y2="373" stroke="#f14c4c" stroke-width="1.3" stroke-dasharray="5 3" marker-end="url(#a-goto)"/>
+          </svg>
+
+          <!-- blocks (every drawn element carries the provenance tick) -->
+          <div class="block entry" style="left:165px; top:10px; width:170px;">3000-TAX-DISPATCH.<span class="tick"></span></div>
+
+          <div class="dlabel" style="left:155px; top:66px; width:190px; height:60px;">RUN-MODE = 'YR-END'</div>
+          <div class="dtick" style="left:247px; top:61px;"></div>
+
+          <div class="block selected" style="left:40px; top:168px; width:168px;">CALL 'TAXCALC' USING …<span class="tick"></span></div>
+          <div class="block" style="left:300px; top:168px; width:186px;">PERFORM 3100-STD-TAX<span class="tick"></span></div>
+
+          <div class="dlabel" style="left:158px; top:236px; width:184px; height:58px;">UNTIL WS-BRACKET &gt; 5</div>
+          <div class="dtick" style="left:247px; top:231px;"></div>
+
+          <div class="block" style="left:392px; top:250px; width:190px;">ADD WS-BRKT-AMT(BRACKET)<span class="tick"></span></div>
+
+          <div class="dlabel" style="left:155px; top:344px; width:190px; height:58px;">WS-TAX-TOTAL &lt; ZERO</div>
+          <div class="dtick" style="left:247px; top:339px;"></div>
+
+          <div class="block" style="left:400px; top:358px; width:118px;">9999-ABEND<span class="tick"></span></div>
+          <div class="block" style="left:140px; top:440px; width:220px;">MOVE WS-TAX-TOTAL TO EMP-TAX<span class="tick"></span></div>
+          <div class="block exit" style="left:195px; top:508px; width:110px;">3000-EXIT.<span class="tick"></span></div>
+
+          <!-- branch labels (non-color cues alongside edge kind) -->
+          <div class="edge-label" style="left:104px; top:112px;">yes</div>
+          <div class="edge-label" style="left:398px; top:112px;">no</div>
+          <div class="edge-label" style="left:352px; top:246px;">loop</div>
+          <div class="edge-label" style="left:257px; top:312px;">done</div>
+          <div class="edge-label" style="left:257px; top:414px;">no</div>
+          <div class="edge-label goto" style="left:349px; top:356px;">GO TO</div>
+        </div>
+      </div>
+
+      <!-- RIGHT: VS Code's native editor, scrolled to the unit, selection-synced -->
+      <div class="group editor-group">
+        <div class="tabstrip">
+          <div class="tab active">PAYROLL.cbl <span class="close">×</span></div>
+        </div>
+        <div class="editor-breadcrumbs">payroll <span class="sep">›</span> PAYROLL.cbl <span class="sep">›</span> 3000-TAX-DISPATCH</div>
+        <div class="code">
+          <div class="line"><span class="num">210</span><pre><span class="par">3000-TAX-DISPATCH</span>.</pre></div>
+          <div class="line"><span class="num">211</span><pre>    <span class="kw">MOVE</span> EMP-GROSS <span class="kw">TO</span> WS-TAX-BASE</pre></div>
+          <div class="line"><span class="num">212</span><pre>    <span class="kw">MOVE</span> <span class="kw">ZERO</span> <span class="kw">TO</span> WS-TAX-TOTAL</pre></div>
+          <div class="line"><span class="num">213</span><pre>    <span class="kw">IF</span> RUN-MODE = <span class="str">'YR-END'</span></pre></div>
+          <div class="line synced"><span class="num">214</span><pre>        <span class="kw">CALL</span> <span class="str">'TAXCALC'</span> <span class="kw">USING</span> WS-TAX-BASE</pre></div>
+          <div class="line synced"><span class="num">215</span><pre>                             WS-TAX-TOTAL</pre></div>
+          <div class="line"><span class="num">216</span><pre>    <span class="kw">ELSE</span></pre></div>
+          <div class="line"><span class="num">217</span><pre>        <span class="kw">PERFORM</span> <span class="par">3100-STD-TAX</span></pre></div>
+          <div class="line"><span class="num">218</span><pre>    <span class="kw">END-IF</span></pre></div>
+          <div class="line"><span class="num">219</span><pre>    <span class="kw">MOVE</span> <span class="n">1</span> <span class="kw">TO</span> WS-BRACKET</pre></div>
+          <div class="line"><span class="num">220</span><pre>    <span class="kw">PERFORM</span> <span class="kw">UNTIL</span> WS-BRACKET &gt; <span class="n">5</span></pre></div>
+          <div class="line"><span class="num">221</span><pre>        <span class="kw">ADD</span> WS-BRKT-AMT (WS-BRACKET)</pre></div>
+          <div class="line"><span class="num">222</span><pre>            <span class="kw">TO</span> WS-TAX-TOTAL</pre></div>
+          <div class="line"><span class="num">223</span><pre>        <span class="kw">ADD</span> <span class="n">1</span> <span class="kw">TO</span> WS-BRACKET</pre></div>
+          <div class="line"><span class="num">224</span><pre>    <span class="kw">END-PERFORM</span></pre></div>
+          <div class="line"><span class="num">225</span><pre>    <span class="kw">IF</span> WS-TAX-TOTAL &lt; <span class="kw">ZERO</span></pre></div>
+          <div class="line"><span class="num">226</span><pre>        <span class="kw">GO</span> <span class="kw">TO</span> <span class="par">9999-ABEND</span></pre></div>
+          <div class="line"><span class="num">227</span><pre>    <span class="kw">END-IF</span></pre></div>
+          <div class="line"><span class="num">228</span><pre>    <span class="kw">MOVE</span> WS-TAX-TOTAL <span class="kw">TO</span> EMP-TAX</pre></div>
+          <div class="line"><span class="num">229</span><pre><span class="par">3000-EXIT</span>.</pre></div>
+          <div class="line"><span class="num">230</span><pre>    <span class="kw">EXIT</span>.</pre></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <div class="seg"><span>main</span></div>
+    <div class="seg"><span>Ln 214, Col 16</span><span>COBOL</span></div>
+  </div>
+</div>
+
+</body>
+</html>

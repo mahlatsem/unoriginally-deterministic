@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>key-dependency-map — unoriginally-deterministic</title>
+<style>
+/* ============================================================================
+   KEY SCREEN: Dependency map — View canvas, system grain, Dependency perspective
+   1:1 mock inside a minimal VS Code window frame. Spine is the contract; this
+   file only illustrates it.
+
+   Governing spine sections:
+   EXPERIENCE.md
+     - Information Architecture: "View canvas", "Anchor popover", "Provenance rail"
+     - Component Patterns rows: Node · Unparsed node · Edge · Anchor popover ·
+       Provenance tick · Source anchor · View header · Perspective switcher ·
+       Breadcrumb
+     - State Patterns rows: "Honest holes present"
+     - Views & Perspectives: "Dependency map" (system grain), availability rule
+     - Key Flows: Flow 1 steps 2-5 (first dependency map, unparsed regions,
+       distrusted edge, popover, PAYROLL.cbl:214)
+   DESIGN.md
+     - Colors (semantic brand layer: provenance / trace-active / unparsed;
+       category ramp cat-1..cat-3 for CALL / COPY / file access)
+     - Components: node, node-unparsed, edge, provenance-tick, source-anchor,
+       anchor-popover, perspective-tab, breadcrumb
+     - Shapes (2-3px radii), Layout & Spacing (dense, single canvas),
+       Elevation & Depth (flat, single borders, no shadows)
+   ============================================================================ */
+
+:root {
+  /* --------------------------------------------------------------------------
+     STAND-IN THEME RESOLUTIONS. DESIGN.md tokens are var(--vscode-*) references
+     that VS Code injects from the user's ACTIVE theme at render time. For this
+     offline mock they are resolved to concrete VS Code Dark+ (default dark)
+     values — dark chosen as representative. In the product, none of these hexes
+     ship; the extension inherits whatever theme the user runs.
+     -------------------------------------------------------------------------- */
+  --vscode-editor-background: #1e1e1e;
+  --vscode-editor-foreground: #d4d4d4;
+  --vscode-descriptionForeground: rgba(204, 204, 204, 0.7);
+  --vscode-panel-border: rgba(128, 128, 128, 0.35);
+  --vscode-editorWidget-background: #252526;
+  --vscode-widget-border: #454545;
+  --vscode-editor-selectionBackground: #264f78;
+  --vscode-focusBorder: #007fd4;
+  --vscode-textLink-foreground: #3794ff;
+  --vscode-textLink-activeForeground: #3794ff;
+  --vscode-editorHoverWidget-background: #252526;
+  --vscode-editorHoverWidget-border: #454545;
+  --vscode-editorHoverWidget-foreground: #cccccc;
+  --vscode-charts-green: #89d185;        /* provenance */
+  --vscode-editorLink-activeForeground: #4e94ce; /* trace-active */
+  --vscode-editorWarning-foreground: #cca700;    /* unparsed — warning, not error */
+  --vscode-charts-blue: #3794ff;         /* cat-1: CALL */
+  --vscode-charts-purple: #b180d7;       /* cat-2: COPY */
+  --vscode-charts-orange: #d18616;       /* cat-3: file access */
+  --vscode-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Ubuntu, "Helvetica Neue", sans-serif;
+  --vscode-editor-font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --vscode-font-size: 13px;
+  --vscode-editor-font-size: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #161616;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  color: var(--vscode-editor-foreground);
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+/* ---- VS Code window frame (minimal: title bar, activity bar, tabs, status) */
+.vscode-window {
+  width: 1180px;
+  border: 1px solid #444;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--vscode-editor-background);
+}
+.titlebar {
+  height: 28px;
+  background: #3c3c3c;
+  display: flex;
+  align-items: center;
+  position: relative;
+  font-size: 12px;
+  color: #cccccc;
+}
+.titlebar .dots { display: flex; gap: 7px; padding: 0 12px; }
+.titlebar .dots span { width: 11px; height: 11px; border-radius: 9999px; background: #5a5a5a; }
+.titlebar .title { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; }
+.window-body { display: flex; }
+.activitybar {
+  width: 48px;
+  background: #333333;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 4px;
+}
+.activitybar .icon {
+  width: 48px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+}
+.activitybar .icon svg { stroke: #858585; fill: none; stroke-width: 1.3; }
+.activitybar .icon.active { border-left: 2px solid #ffffff; }
+.activitybar .icon.active svg { stroke: #ffffff; }
+.main-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.tabstrip {
+  height: 32px;
+  background: #252526;
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid #252526;
+  font-size: 12px;
+}
+.tab {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 12px;
+  border-right: 1px solid #1e1e1e;
+  color: #969696;
+  background: #2d2d2d;
+  font-family: var(--vscode-editor-font-family);
+}
+.tab.active { background: var(--vscode-editor-background); color: #e7e7e7; }
+.tab .close { color: #7a7a7a; font-family: var(--vscode-font-family); }
+.statusbar {
+  height: 22px;
+  background: #007acc;
+  color: #ffffff;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+}
+.statusbar .seg { display: flex; gap: 14px; }
+
+/* ---- View header: wordmark · perspective tabs · breadcrumb · legend · rail */
+.view-header {
+  padding: 6px 12px 0 12px;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-background);
+}
+.header-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-height: 26px;
+}
+.wordmark {
+  font-family: var(--vscode-editor-font-family); /* the one branded type moment */
+  font-weight: 400;
+  font-size: 12px;
+  letter-spacing: 0;
+  color: var(--vscode-editor-foreground);
+  white-space: nowrap;
+}
+.perspective-tabs { display: flex; gap: 2px; align-self: stretch; }
+.perspective-tab {
+  padding: 4px 10px 5px 10px;
+  color: var(--vscode-descriptionForeground);
+  border-bottom: 1px solid transparent;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.perspective-tab.active {
+  color: var(--vscode-editor-foreground);
+  border-bottom-color: var(--vscode-focusBorder);
+}
+.breadcrumb {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+  white-space: nowrap;
+}
+.breadcrumb .current { color: var(--vscode-editor-foreground); }
+.header-spacer { flex: 1; }
+.legend { display: flex; gap: 14px; align-items: center; font-size: 11px; color: var(--vscode-descriptionForeground); white-space: nowrap; }
+.legend .swatch { display: inline-block; width: 22px; vertical-align: middle; margin-right: 5px; }
+.legend .swatch.call   { border-top: 2px solid var(--vscode-charts-blue); }
+.legend .swatch.copy   { border-top: 2px dashed var(--vscode-charts-purple); }
+.legend .swatch.file   { border-top: 2px dotted var(--vscode-charts-orange); }
+.rail-toggle {
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 2px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+.continuity {
+  padding: 4px 0 6px 0;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+/* ---- Canvas: nodes over an SVG edge layer. Flat, dense, no shadows. */
+.canvas {
+  position: relative;
+  height: 500px;
+  background: var(--vscode-editor-background);
+  overflow: hidden;
+}
+.edges { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.node {
+  position: absolute;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  padding: 0 9px;
+  background: var(--vscode-editorWidget-background);
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 2px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  color: var(--vscode-editor-foreground);
+  white-space: nowrap;
+}
+.node .kind {
+  font-family: var(--vscode-font-family);
+  font-size: 9px;
+  color: var(--vscode-descriptionForeground);
+  margin-left: 7px;
+}
+/* provenance tick: the signature mark — present on every drawn element */
+.tick {
+  position: absolute;
+  top: -3px; right: -3px;
+  width: 6px; height: 6px;
+  border-radius: 9999px;
+  background: var(--vscode-charts-green);
+}
+.node.selected {
+  border-color: var(--vscode-focusBorder);
+  background: var(--vscode-editor-selectionBackground);
+}
+/* honest hole: dashed warning border + hatch fill; expected, not broken */
+.node.unparsed {
+  border: 1px dashed var(--vscode-editorWarning-foreground);
+  color: var(--vscode-editorWarning-foreground);
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 5px,
+    rgba(204, 167, 0, 0.13) 5px,
+    rgba(204, 167, 0, 0.13) 6px
+  );
+}
+
+/* ---- Anchor popover: primary provenance surface, VS Code hover-widget style */
+.anchor-popover {
+  position: absolute;
+  background: var(--vscode-editorHoverWidget-background);
+  border: 1px solid var(--vscode-editorHoverWidget-border);
+  border-radius: 3px;
+  color: var(--vscode-editorHoverWidget-foreground);
+  padding: 6px 8px;
+  font-size: 12px;
+  min-width: 176px;
+}
+.anchor-popover .anchor-row { display: flex; align-items: center; gap: 6px; }
+.anchor-popover .anchor-row .dot {
+  width: 6px; height: 6px; border-radius: 9999px;
+  background: var(--vscode-charts-green);
+  flex: none;
+}
+.source-anchor {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 12px;
+  color: var(--vscode-textLink-foreground);
+  border: 1px solid var(--vscode-widget-border);
+  border-radius: 2px;
+  padding: 1px 6px;
+}
+.anchor-popover .drill-preview {
+  margin-top: 5px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+}
+.anchor-popover .drill-preview .key { font-family: var(--vscode-editor-font-family); }
+</style>
+</head>
+<body>
+
+<div class="vscode-window">
+  <div class="titlebar">
+    <div class="dots"><span></span><span></span><span></span></div>
+    <div class="title">payroll — Visual Studio Code</div>
+  </div>
+
+  <div class="window-body">
+    <div class="activitybar">
+      <div class="icon"><svg width="22" height="22" viewBox="0 0 22 22"><path d="M6 3.5h7l3 3v12H6z"/><path d="M13 3.5v3h3"/></svg></div>
+      <div class="icon"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="10" cy="10" r="5"/><path d="M14 14l4.5 4.5"/></svg></div>
+      <div class="icon"><svg width="22" height="22" viewBox="0 0 22 22"><circle cx="7" cy="6" r="2.2"/><circle cx="7" cy="16" r="2.2"/><circle cx="15" cy="11" r="2.2"/><path d="M7 8.2v5.6M9 7l4 3"/></svg></div>
+      <div class="icon active"><svg width="22" height="22" viewBox="0 0 22 22"><rect x="4" y="4" width="6" height="6"/><rect x="12" y="4" width="6" height="6"/><rect x="4" y="12" width="6" height="6"/><path d="M15 12v6M12 15h6"/></svg></div>
+    </div>
+
+    <div class="main-col">
+      <div class="tabstrip">
+        <div class="tab active">unoriginally-deterministic — payroll <span class="close">×</span></div>
+        <div class="tab">PAYROLL.cbl <span class="close">×</span></div>
+      </div>
+
+      <!-- View header: wordmark · perspective tabs · grain breadcrumb · legend · rail toggle -->
+      <div class="view-header">
+        <div class="header-row">
+          <span class="wordmark">unoriginally-deterministic</span>
+          <div class="perspective-tabs">
+            <span class="perspective-tab active">Dependency</span>
+            <span class="perspective-tab">Sequence</span>
+            <span class="perspective-tab">Reach</span>
+          </div>
+          <span class="breadcrumb"><span class="current">payroll</span></span>
+          <div class="header-spacer"></div>
+          <div class="legend">
+            <span><span class="swatch call"></span>CALL</span>
+            <span><span class="swatch copy"></span>COPY</span>
+            <span><span class="swatch file"></span>file access</span>
+          </div>
+          <span class="rail-toggle">rail</span>
+        </div>
+        <div class="continuity">Drawn from payroll/ as it is now · 214 files · 3 regions unparsed — shown, unread</div>
+      </div>
+
+      <!-- Canvas: fit-to-canvas dependency graph, system grain -->
+      <div class="canvas">
+        <svg class="edges" viewBox="0 0 1131 500" preserveAspectRatio="none">
+          <defs>
+            <marker id="a-call" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#3794ff"/></marker>
+            <marker id="a-copy" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#b180d7"/></marker>
+            <marker id="a-file" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="#d18616"/></marker>
+            <marker id="a-muted" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0 L8 4 L0 8 z" fill="rgba(204,204,204,0.5)"/></marker>
+          </defs>
+          <!-- CALL edges (cat-1, solid) -->
+          <line x1="350" y1="178" x2="514" y2="106" stroke="#3794ff" stroke-width="1.4" marker-end="url(#a-call)"/>
+          <line x1="350" y1="188" x2="514" y2="220" stroke="#3794ff" stroke-width="1.4" marker-end="url(#a-call)"/>
+          <line x1="348" y1="196" x2="515" y2="336" stroke="#3794ff" stroke-width="1.4" marker-end="url(#a-call)"/>
+          <line x1="298" y1="196" x2="298" y2="325" stroke="#3794ff" stroke-width="1.4" marker-end="url(#a-call)"/>
+          <line x1="622" y1="106" x2="755" y2="158" stroke="#3794ff" stroke-width="1.4" marker-end="url(#a-call)"/>
+          <!-- COPY edges (cat-2, dashed) -->
+          <line x1="250" y1="187" x2="194" y2="263" stroke="#b180d7" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#a-copy)"/>
+          <line x1="520" y1="228" x2="196" y2="270" stroke="#b180d7" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#a-copy)"/>
+          <line x1="622" y1="97" x2="755" y2="58" stroke="#b180d7" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#a-copy)"/>
+          <!-- file-access edges (cat-3, dotted) -->
+          <line x1="250" y1="349" x2="178" y2="424" stroke="#d18616" stroke-width="1.4" stroke-dasharray="2 4" stroke-linecap="round" marker-end="url(#a-file)"/>
+          <line x1="520" y1="352" x2="178" y2="432" stroke="#d18616" stroke-width="1.4" stroke-dasharray="2 4" stroke-linecap="round" marker-end="url(#a-file)"/>
+          <!-- containment edge to the unparsed region (muted) -->
+          <line x1="606" y1="116" x2="786" y2="288" stroke="rgba(204,204,204,0.35)" stroke-width="1.2" marker-end="url(#a-muted)"/>
+        </svg>
+
+        <!-- programs -->
+        <div class="node selected" style="left:250px; top:170px;">PAYROLL.cbl<span class="tick"></span></div>
+        <div class="node" style="left:520px; top:90px;">TAXCALC.cbl<span class="tick"></span></div>
+        <div class="node" style="left:520px; top:210px;">DEDUCT.cbl<span class="tick"></span></div>
+        <div class="node" style="left:520px; top:330px;">PAYCHECK.cbl<span class="tick"></span></div>
+        <div class="node" style="left:760px; top:150px;">YTDRPT.cbl<span class="tick"></span></div>
+        <div class="node" style="left:250px; top:330px;">EMPMAST.cbl<span class="tick"></span></div>
+        <!-- copybooks -->
+        <div class="node" style="left:60px; top:260px;">PAYROLL-REC.cpy<span class="tick"></span></div>
+        <div class="node" style="left:760px; top:40px;">TAXRATES.cpy<span class="tick"></span></div>
+        <!-- data file -->
+        <div class="node" style="left:60px; top:420px;">EMPFILE<span class="kind">FD</span><span class="tick"></span></div>
+        <!-- honest hole: tree-sitter ERROR region, rendered in place -->
+        <div class="node unparsed" style="left:740px; top:290px;">‹unparsed: 12 lines›<span class="tick"></span></div>
+
+        <!-- Anchor popover, pinned on the selected node (select = pin) -->
+        <div class="anchor-popover" style="left:242px; top:206px;">
+          <div class="anchor-row">
+            <span class="dot"></span>
+            <span class="source-anchor">PAYROLL.cbl:214</span>
+          </div>
+          <div class="drill-preview"><span class="key">↵</span> Call-flow · 14 paragraphs</div>
+        </div>
+      </div>
+
+      <div class="statusbar">
+        <div class="seg"><span>main</span></div>
+        <div class="seg"><span>COBOL</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
