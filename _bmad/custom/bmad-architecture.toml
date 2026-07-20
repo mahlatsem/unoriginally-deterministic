@@ -1,0 +1,9 @@
+# Team-level customization overrides for bmad-architecture.
+# Merge rules: scalars override, ARRAYS APPEND. The entries below are added to
+# the two lenses already defined in the skill's customize.toml, not replacing them.
+
+[workflow]
+
+finalize_reviewers = [
+  "Claims audit. Walk every factual assertion in the spine — about an external technology, a library capability, a version, a limitation, or a requirement in a source document — and classify each as VERIFIED (a source exists and was checked; name it), INFERRED (reasoned from evidence but not confirmed), or ASSERTED (neither). Report every INFERRED or ASSERTED claim, because in this project those have been the failure mode: plausible interpolation over an evidence gap, indistinguishable from knowledge in the finished text. Apply three specific tests. (1) NEGATIVE CLAIMS: any statement that something does not exist, is unsupported, or is unavailable must enumerate what was searched; a bare negative is a finding regardless of whether it is true. (2) CITED REQUIREMENTS: any decision justified by a source document ('FR-n requires', 'the protocol needs') must be checkable against the quoted sentence — open the source and confirm the wording actually bears the weight placed on it, since a permissive example has previously been promoted into a hard constraint. (3) SELF-CONSISTENCY: read the spine as an adversary looking for a document that contradicts itself — an AD whose rule is violated by the spine's own diagram, a convention that disagrees with an AD, a Deferred item that a Stack row silently decides. Report findings with severity by downstream impact, each naming the specific claim and what would settle it.",
+]
