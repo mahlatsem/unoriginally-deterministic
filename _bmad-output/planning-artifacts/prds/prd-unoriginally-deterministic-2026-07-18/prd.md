@@ -1,7 +1,7 @@
 ---
 title: unoriginally-deterministic
 created: 2026-07-18
-updated: 2026-07-19
+updated: 2026-07-20
 status: final
 ---
 
@@ -212,6 +212,10 @@ Phase A must stand alone as a complete, honest product — not a demo with gaps.
 
 ### 5.3 Rollout Plan
 Phased: **(1) Dogfood** — maintainer uses v1 on real COBOL modernization work (§6, SM-1); **(2) Invited beta** — a small, informal group tries it, no formal support commitment; **(3) Public listing** — published to the VS Code Marketplace. Community contributions stay closed until after public listing (§7, OQ-4) — no defined trigger yet for when they open. Graduation criteria between phases, and what happens if a regression or trust-model break is found during beta, are not yet defined (§7, OQ-6).
+
+### 5.4 Beyond v1
+
+Capability committed in direction but not in design is tracked in [ROADMAP.md](../../ROADMAP.md) — kept out of this PRD so v1 scope stays legible, and out of any one design document so it is not rediscovered by accident. Nothing there may pull work forward into v1, and everything there is downstream of the reliability gate. The first entry is **Phase C — change review**: extraction diffed across a PR's two sides and rendered in VS Code, so a reviewer sees what a change *touched*, not merely what it edited. It is the reason v1 ships no image export (architecture AD-25) — views are re-derived on both sides, never exchanged as artifacts.
 
 ## 6. Success Metrics
 
