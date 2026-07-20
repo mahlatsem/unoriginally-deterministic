@@ -26,13 +26,22 @@ you stay in **VS Code**, the tools are **TypeScript**, and you mold new ones wit
 
 ## Status
 
-⚠️ **Early — concept stage.** This repository currently holds the **Working Backwards
-PRFAQ** for the project, not an implementation. The immediate next step is a reliability
-prototype: prove that different AI assistants can each generate a correct,
-provenance-carrying tool against the toolkit's extension contract without hand-holding.
+⚠️ **Early — planning complete, no implementation yet.** This repository holds the
+planning artifacts for v1 — concept, requirements, experience and visual design, and
+technical architecture — but no code. The immediate next step is the **reliability gate**:
+prove that Claude Code, given the extension contract cold, produces correct,
+provenance-carrying tools that plug in unedited across several independent tasks. The
+toolkit is assistant-agnostic by design, but the gate deliberately validates one
+assistant rather than claiming portability it hasn't tested. If that gate fails, it
+indicts the extension contract — and the contract gets redesigned before anything else
+is built.
 
-- 📄 [PRFAQ](_bmad-output/planning-artifacts/prfaq-unoriginally-deterministic.md) — the full Working Backwards write-up (press release + customer/internal FAQ + verdict)
+- 📄 [PRFAQ](_bmad-output/planning-artifacts/prfaq-unoriginally-deterministic.md) — the Working Backwards write-up (press release + customer/internal FAQ + verdict)
 - 📄 [Distillate](_bmad-output/planning-artifacts/prfaq-unoriginally-deterministic-distillate.md) — dense context for downstream planning
+- 📄 [PRD](_bmad-output/planning-artifacts/prds/prd-unoriginally-deterministic-2026-07-18/prd.md) — v1 scope: what must be true, and the phasing that puts the gate first
+- 📄 [Experience spine](_bmad-output/planning-artifacts/ux-designs/ux-unoriginally-deterministic-2026-07-19/EXPERIENCE.md) — how it behaves: scopes, perspectives, grains, and the honest states
+- 📄 [Design spine](_bmad-output/planning-artifacts/ux-designs/ux-unoriginally-deterministic-2026-07-19/DESIGN.md) — visual identity, inherited from the user's VS Code theme
+- 📄 [Architecture spine](_bmad-output/planning-artifacts/architecture/architecture-unoriginally-deterministic-2026-07-19/ARCHITECTURE-SPINE.md) — how it is built: the invariants that keep determinism and provenance true by construction
 
 ## Design principles
 
