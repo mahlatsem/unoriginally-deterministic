@@ -98,6 +98,12 @@ components:
     border-style: 'dashed'
     foreground: '{colors.foreground}'
     badge-color: '{colors.unresolved}'
+  node-out-of-snapshot:
+    # Statically named, not extracted. Neither a parse failure nor a dynamic
+    # target — the boundary of what was looked at, drawn rather than implied.
+    border: '{colors.muted}'
+    border-style: 'dotted'
+    foreground: '{colors.muted}'
   edge:
     stroke: '{colors.muted}'
     hit-area: '8px'        # invisible fat hit target; the visible stroke is 1px
@@ -239,6 +245,7 @@ Base interactive controls (buttons, inputs, dropdowns, checkboxes, tooltips, pan
 - **Provenance rail (`{components.provenance-rail}`)** — the **secondary, opt-in** audit surface. A slim right column listing anchors across many elements at once, separated from the canvas by a single `{colors.border}`. Never auto-opens; toggled from the view header.
 - **Perspective switcher (`{components.perspective-tab}`)** — header tabs switching the projection of the current scope. Quiet `{colors.muted}` inactive, `{colors.foreground}` + `{colors.focus-ring}` underline active — VS Code panel-tab geometry, no pill or fill. Only valid perspectives render; there is no disabled-tab state.
 - **Breadcrumb (`{components.breadcrumb}`)** — the grain path (`payroll › PAYROLL.cbl › CALC-TAX`). Segments set in `{typography.code}` because they are source identifiers; ancestors in `{colors.muted}`, current grain in `{colors.foreground}`. Separator `›` in the UI ramp.
+- **Out-of-snapshot node (`{components.node-out-of-snapshot}`)** — a target the source names but extraction did not cover. Dotted, muted, labelled with the name it was given. Must read as *the edge of what was looked at* — not as a failure (unparsed) and not as an unknowable (unresolved). Three different kinds of not-having-it, three distinguishable treatments.
 
 ## Do's and Don'ts
 
