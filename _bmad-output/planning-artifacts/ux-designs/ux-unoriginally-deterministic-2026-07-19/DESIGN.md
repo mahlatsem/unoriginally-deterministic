@@ -2,7 +2,7 @@
 name: unoriginally-deterministic
 description: Visual identity for a VS Code extension that draws deterministic, code-derived comprehension views. Inherits the user's active VS Code color theme; this DESIGN.md specifies only the brand-layer delta — the provenance, trace, unparsed and unresolved semantics — plus the contrast floor beneath that inheritance.
 status: final
-updated: 2026-07-19
+updated: 2026-07-20
 colors:
   # THEME-INHERITED. All base surface/text/chrome tokens resolve to the user's
   # active VS Code color theme at render time (light / dark / high-contrast).
@@ -104,6 +104,17 @@ components:
     border: '{colors.muted}'
     border-style: 'dotted'
     foreground: '{colors.muted}'
+  node-unresolved-inclusion:
+    # A named include whose source could not be located. Deliberately the union
+    # of two families: DOTTED like out-of-snapshot (named but absent) + HATCH
+    # like unparsed (interior unknown) — because that is exactly what it is.
+    # Distinct from both: the parser did not choke, and this is not the benign
+    # edge of scope — an unbounded amount of THIS unit is simply missing.
+    border: '{colors.unparsed}'
+    border-style: 'dotted'
+    fill: 'hatch'
+    foreground: '{colors.foreground}'
+    badge-color: '{colors.unparsed}'
   edge:
     stroke: '{colors.muted}'
     hit-area: '8px'        # invisible fat hit target; the visible stroke is 1px
@@ -234,7 +245,9 @@ Base interactive controls (buttons, inputs, dropdowns, checkboxes, tooltips, pan
 
 - **Node (`{components.node}`)** — a drawn element at any grain (compilation unit, callable, flow block). Monospace label = the source identifier. Carries a **provenance tick**. Selected state uses `{components.node-selected}` (focus-ring border + selection fill).
 - **Unparsed node (`{components.node-unparsed}`)** — a tree-sitter ERROR region. Dashed `{colors.unparsed}` border, hatch fill, badge in the unparsed hue, label reading e.g. `‹unparsed: 3 lines›` set in `{colors.foreground}` for legibility. Rendered in place, never omitted. Carries the provenance tick — it is *located* — but the hatch and dash must dominate, because located and read are different claims.
+- **Out-of-snapshot node (`{components.node-out-of-snapshot}`)** — a target the source names but extraction did not cover. Dotted, muted, labelled with the name it was given. Must read as *the edge of what was looked at* — not as a failure (unparsed) and not as an unknowable (unresolved). Three different kinds of not-having-it, three distinguishable treatments.
 - **Unresolved-target node (`{components.node-unresolved}`)** — a dynamic call target, labelled `‹dynamic: WS-PROG-NAME›`. Dashed `{colors.unresolved}` border. **Must be visually distinct from an unparsed node**: different hue, different hatch (or none). Confusing "we couldn't read this" with "this isn't knowable until runtime" would collapse two honest states into one vague one.
+- **Unresolved-inclusion node (`{components.node-unresolved-inclusion}`)** — an include whose source could not be located, labelled with the member it named, e.g. `‹copybook not found: CUSTREC›`. Dotted border **and** hatch fill: it is genuinely the union of the two neighbouring states — *named but absent* like out-of-snapshot, *interior unknown* like unparsed — and the treatment says so rather than picking a side. It is the one honest state whose local mark **cannot** convey its own severity: what is missing is unbounded and invisible, since nothing renders where the copybook's paragraphs and data items would have been. It therefore always travels with a view-level count in the header (`EXPERIENCE.md` § What the picture must never over-resolve). The node says *where*; only the header says *how much you cannot see*.
 - **Edge (`{components.edge}`)** — a drawn relationship. 1px stroke `{colors.muted}`, with an `8px` invisible hit area so a click-to-trace target is reachable. Category colour when kind matters, always with a line style. Variants: `{components.edge-traced}` while tracing, `{components.edge-unparsed}` when it touches a hole, `{components.edge-jump}` for the unstructured jump (dashed + open arrowhead — distinguished by shape, not colour alone).
 - **Provenance tick (`{components.provenance-tick}`)** — the signature mark. A small `{colors.provenance}` dot/underline on every drawn element confirming it carries a source span, at or above `min-size` in every theme and zoom. Its *absence is impossible by construction* — that's the point. What it does **not** claim: correctness, or that the span was read.
 - **View header (`{components.view-header}`)** — the top strip: wordmark, perspective tabs, breadcrumb, legend, controls. One `{colors.border}` separating it from the canvas, no elevation. Carries the honest counts (unparsed, unresolved, collapsed) in `{colors.muted}` and the draw timestamp.
@@ -245,7 +258,6 @@ Base interactive controls (buttons, inputs, dropdowns, checkboxes, tooltips, pan
 - **Provenance rail (`{components.provenance-rail}`)** — the **secondary, opt-in** audit surface. A slim right column listing anchors across many elements at once, separated from the canvas by a single `{colors.border}`. Never auto-opens; toggled from the view header.
 - **Perspective switcher (`{components.perspective-tab}`)** — header tabs switching the projection of the current scope. Quiet `{colors.muted}` inactive, `{colors.foreground}` + `{colors.focus-ring}` underline active — VS Code panel-tab geometry, no pill or fill. Only valid perspectives render; there is no disabled-tab state.
 - **Breadcrumb (`{components.breadcrumb}`)** — the grain path (`payroll › PAYROLL.cbl › CALC-TAX`). Segments set in `{typography.code}` because they are source identifiers; ancestors in `{colors.muted}`, current grain in `{colors.foreground}`. Separator `›` in the UI ramp.
-- **Out-of-snapshot node (`{components.node-out-of-snapshot}`)** — a target the source names but extraction did not cover. Dotted, muted, labelled with the name it was given. Must read as *the edge of what was looked at* — not as a failure (unparsed) and not as an unknowable (unresolved). Three different kinds of not-having-it, three distinguishable treatments.
 
 ## Do's and Don'ts
 
