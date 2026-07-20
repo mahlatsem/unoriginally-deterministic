@@ -5,7 +5,7 @@ sources:
   - {planning_artifacts}/prds/prd-unoriginally-deterministic-2026-07-18/prd.md
   - {planning_artifacts}/prfaq-unoriginally-deterministic.md
   - {planning_artifacts}/prfaq-unoriginally-deterministic-distillate.md
-updated: 2026-07-19
+updated: 2026-07-20
 ---
 
 # unoriginally-deterministic — Experience Spine
@@ -178,7 +178,7 @@ Phase A must stand alone as a complete, honest product — not a demo with gaps.
 
 **Per-perspective behavior:**
 
-- **Dependency map** (system) — the orientation perspective, and the one a user meets first. Opens fit-to-canvas at whole-system scope so the shape of the estate is visible before drilling. Nodes: compilation units, the sources they include, and the data artifacts they declare. Edges: **static reference** — one node naming another (invocation, inclusion, data access) — category-coloured with a legend, so a program-to-program call is never confusable with a program-to-table write. Collapse-by-subtree for density; never silently truncates (it says what it collapsed).
+- **Dependency map** (system) — the orientation perspective, and the one a user meets first. Opens fit-to-canvas at whole-system scope so the shape of the estate is visible before drilling. Nodes: compilation units, the sources they include, and the data artifacts they declare. Edges are **typed by kind** — `invoke`, `include`, `read`, `write` (the closed set; architecture AD-17) — each category-coloured *and* carrying a non-colour cue in the legend, so a program-to-program call is never confusable with a program-to-table write. "Static reference" is prose for the family, never a kind a producer may emit. Collapse-by-subtree for density; never silently truncates (it says what it collapsed).
 - **Sequence diagram** (system) — the *order* perspective on the same units: lifelines are units, messages are **invocations in source order** from a chosen entry point. Conditional invocations carry their guard condition visibly; statically evident loops are marked as fragments. This is the sequence **as written in source, not a runtime trace** — the header says so plainly. Switching to it with a unit selected uses that as the entry point; with nothing selected, it asks. Every message traces to its invocation site.
 - **Reach tracer** (system) — the blast-radius perspective, most directly serving "I have to change this without breaking the business." **Bidirectional**, because that question has two halves and only one of them points outward:
   - **Outbound** — what this node **statically** reads, writes, and invokes, including the files and tables it touches. Answers *"once this is invoked, what else does it reach."* Edge kind (read / write / invoke) is first-class because *writes* carry the risk.
@@ -220,9 +220,9 @@ Everything above is language-agnostic. A **language profile** is the thin mappin
 | System node — data artifact (leaf) | declared file, database table | *(rarely applicable — the toolkit's own source declares none)* |
 | Component node — named callable | section, paragraph | function, method, class member |
 | Unit — control flow within a callable | statements inside a paragraph | statements inside a function |
-| Static reference edge | `CALL 'LIT'`, `COPY` | `import`, direct call, re-export |
-| Data access edge (read / write) | file `SELECT`/`ASSIGN`/`FD` + I-O verbs; embedded-SQL table references | *(rarely applicable)* |
-| Invocation (sequence message) | `CALL`, `PERFORM` | function / method call |
+| Inclusion edge (`include`) | `COPY`, `COPY … REPLACING` | `import`, re-export, path alias |
+| Data access edge (`read` / `write`) | file `SELECT`/`ASSIGN`/`FD` + I-O verbs; embedded-SQL table references | *(rarely applicable)* |
+| Invocation edge (`invoke`) — also the sequence message | `CALL 'LIT'`, `PERFORM` | function / method call |
 | Unstructured jump | `GO TO`, `PERFORM THRU` fall-through | *(none — the distinction simply doesn't render)* |
 | Loop construct | `PERFORM UNTIL` / `VARYING` | `for`, `while`, `do` |
 | Dispatch construct | `EVALUATE` | `switch`, conditional chains |
